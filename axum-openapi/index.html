@@ -1,0 +1,815 @@
+<!DOCTYPE html><html lang="en"> <head><!-- Global Metadata --><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="icon" type="image/svg+xml" href="/blog/favicon.svg"><meta name="generator" content="Astro v4.8.3"><!-- Canonical URL --><link rel="canonical" href="https://borolgs.github.io/blog/axum-openapi/"><!-- Primary Meta Tags --><title>OpenAPI and Axum (Rust)</title><meta name="title" content="OpenAPI and Axum (Rust)"><meta name="description" content="Quickstart with aide library"><!-- Open Graph / Facebook --><meta property="og:type" content="website"><meta property="og:url" content="https://borolgs.github.io/blog/axum-openapi/"><meta property="og:title" content="OpenAPI and Axum (Rust)"><meta property="og:description" content="Quickstart with aide library"><!-- <meta property="og:image" content={new URL(image, Astro.url)} /> --><!-- Twitter --><meta property="twitter:card" content="summary_large_image"><meta property="twitter:url" content="https://borolgs.github.io/blog/axum-openapi/"><meta property="twitter:title" content="OpenAPI and Axum (Rust)"><meta property="twitter:description" content="Quickstart with aide library"><!-- <meta property="twitter:image" content={new URL(image, Astro.url)} /> --><link rel="stylesheet" href="/blog/_astro/_slug_.B6jfLDiG.css"><script type="module" src="/blog/_astro/hoisted.B7esr-8K.js"></script></head> <body> <header class="container"> <nav aria-label="breadcrumb" hx-boost="true"> <ul> <li> <a href="/blog">Blog</a> </li> <li> <a href="/blog/{slug}" aria-current="page"> OpenAPI and Axum (Rust) </a> </li> </ul> </nav> </header> <main class="container"> <section> <blockquote class="plate">
+
+<p> Draft</p>
+</blockquote>
+<h1 id="openapi-and-axum-aide">OpenAPI and Axum (aide)</h1>
+<p>В rust-экосистеме библиотека №1 для работы с openAPI это <a href="https://github.com/juhaku/utoipa">utopia</a>. Ну или у меня сложилось такое впечатление.<br>
+Но тут я вижу то от чего меня корежило в nest.js:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="rust"><code><span class="line"><span style="color:#F97583">pub</span><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">super</span><span style="color:#E1E4E8">) </span><span style="color:#F97583">fn</span><span style="color:#B392F0"> router</span><span style="color:#E1E4E8">() </span><span style="color:#F97583">-></span><span style="color:#B392F0"> Router</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#F97583">    let</span><span style="color:#E1E4E8"> store </span><span style="color:#F97583">=</span><span style="color:#B392F0"> Arc</span><span style="color:#F97583">::</span><span style="color:#B392F0">new</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">Store</span><span style="color:#F97583">::</span><span style="color:#B392F0">default</span><span style="color:#E1E4E8">());</span></span>
+<span class="line"><span style="color:#B392F0">    Router</span><span style="color:#F97583">::</span><span style="color:#B392F0">new</span><span style="color:#E1E4E8">()</span></span>
+<span class="line"><span style="color:#6A737D">        /* ... */</span></span>
+<span class="line"><span style="color:#F97583">        .</span><span style="color:#B392F0">route</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"/search"</span><span style="color:#E1E4E8">, </span><span style="color:#B392F0">routing</span><span style="color:#F97583">::</span><span style="color:#B392F0">get</span><span style="color:#E1E4E8">(search_todos))</span></span>
+<span class="line"><span style="color:#F97583">        .</span><span style="color:#B392F0">with_state</span><span style="color:#E1E4E8">(store)</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#E1E4E8">#[utoipa</span><span style="color:#F97583">::</span><span style="color:#E1E4E8">path(</span></span>
+<span class="line"><span style="color:#E1E4E8">    get,</span></span>
+<span class="line"><span style="color:#E1E4E8">    path </span><span style="color:#F97583">=</span><span style="color:#9ECBFF"> "/search"</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#E1E4E8">    params(</span></span>
+<span class="line"><span style="color:#B392F0">        TodoSearchQuery</span></span>
+<span class="line"><span style="color:#E1E4E8">    ),</span></span>
+<span class="line"><span style="color:#E1E4E8">    responses(</span></span>
+<span class="line"><span style="color:#E1E4E8">        (status </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> 200, description </span><span style="color:#F97583">=</span><span style="color:#9ECBFF"> "List matching todos by query"</span><span style="color:#E1E4E8">, body </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> [</span><span style="color:#B392F0">Todo</span><span style="color:#E1E4E8">])</span></span>
+<span class="line"><span style="color:#E1E4E8">    )</span></span>
+<span class="line"><span style="color:#E1E4E8">)]</span></span>
+<span class="line"><span style="color:#F97583">async</span><span style="color:#F97583"> fn</span><span style="color:#B392F0"> search_todos</span><span style="color:#E1E4E8">(</span></span>
+<span class="line"><span style="color:#B392F0">    State</span><span style="color:#E1E4E8">(store)</span><span style="color:#F97583">:</span><span style="color:#B392F0"> State</span><span style="color:#E1E4E8">&#x3C;</span><span style="color:#B392F0">Arc</span><span style="color:#E1E4E8">&#x3C;</span><span style="color:#B392F0">Store</span><span style="color:#E1E4E8">>>,</span></span>
+<span class="line"><span style="color:#E1E4E8">    query</span><span style="color:#F97583">:</span><span style="color:#B392F0"> Query</span><span style="color:#E1E4E8">&#x3C;</span><span style="color:#B392F0">TodoSearchQuery</span><span style="color:#E1E4E8">>,</span></span>
+<span class="line"><span style="color:#E1E4E8">) </span><span style="color:#F97583">-></span><span style="color:#B392F0"> Json</span><span style="color:#E1E4E8">&#x3C;</span><span style="color:#B392F0">Vec</span><span style="color:#E1E4E8">&#x3C;</span><span style="color:#B392F0">Todo</span><span style="color:#E1E4E8">>> { </span><span style="color:#6A737D">/*...*/</span><span style="color:#E1E4E8"> }</span></span>
+<span class="line"></span></code></pre>
+<p><em>Дублирование</em>. Пишем роут в роутере, его же дублируем в макросе.<br>
+В арументах обработчика уже есть квери, мы еще раз описываем ее в макросе. Ну и то же самое про респонз. Это неприятно.</p>
+<p>В качестве альтернативы можно рассмотреть <a href="https://docs.rs/aide/latest/aide/">aide</a>.</p>
+<p>Это не самая популярная, но гордая библиотека, представленая в <a href="https://github.com/tokio-rs/axum/blob/main/ECOSYSTEM.md">axum ecosystem</a> списке.
+Ниже приведено краткое пошаговое руководство по работе с ней.</p>
+<p>TL;DR:<br>
+<a href="https://github.com/borolgs/axum-examples/blob/main/openapi-aide">https://github.com/borolgs/axum-examples/blob/main/openapi-aide</a></p>
+<ul>
+<li>полная и актуальная (3.1) схема openapi, включая энамы всех возможных ошибок</li>
+<li>экстракторы возвращают ошибки в json формате, вместо plain text</li>
+<li>нет дублирования структур ответов/запросов (почти)</li>
+</ul>
+<h2 id="hello-world">Hello world</h2>
+<p>Вместо макросов (хотя макросы тоже будут), aide пошел по пути создания собственных оберток для всего: роутера, экстракторов и трейтов:</p>
+<ul>
+<li>
+<p><code>axum::Router</code> -> <code>aide::ApiRouter</code></p>
+</li>
+<li>
+<p><code>IntoResponse</code> -> <code>aide::IntoApiResponse</code></p>
+</li>
+<li>
+<p><code>axum::routing::get</code> -> <code>aide::axum::routing::{get, get_with}</code></p>
+</li>
+<li>
+<p><code>axum::Json</code> -> <code>axum_jsonschema::Json</code></p>
+<p><a href="https://docs.rs/axum-jsonschema/latest/axum_jsonschema/">axum_jsonschema</a> - библиотека-компаньон, может использоваться самостоятельно.</p>
+</li>
+</ul>
+<p>Выполнив такие замены:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="rust"><code><span class="line"><span style="color:#F97583">use</span><span style="color:#B392F0"> aide</span><span style="color:#F97583">::</span><span style="color:#E1E4E8">{</span></span>
+<span class="line"><span style="color:#B392F0">    axum</span><span style="color:#F97583">::</span><span style="color:#E1E4E8">{</span><span style="color:#B392F0">routing</span><span style="color:#F97583">::</span><span style="color:#E1E4E8">get, </span><span style="color:#B392F0">ApiRouter</span><span style="color:#E1E4E8">, </span><span style="color:#B392F0">IntoApiResponse</span><span style="color:#E1E4E8">},</span></span>
+<span class="line"><span style="color:#B392F0">    openapi</span><span style="color:#F97583">::</span><span style="color:#B392F0">OpenApi</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#E1E4E8">};</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">use</span><span style="color:#B392F0"> axum_jsonschema</span><span style="color:#F97583">::</span><span style="color:#B392F0">Json</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#F97583">use</span><span style="color:#B392F0"> serde_json</span><span style="color:#F97583">::</span><span style="color:#E1E4E8">json;</span></span>
+<span class="line"><span style="color:#F97583">use</span><span style="color:#B392F0"> tokio</span><span style="color:#F97583">::</span><span style="color:#B392F0">net</span><span style="color:#F97583">::</span><span style="color:#B392F0">TcpListener</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#E1E4E8">#[tokio</span><span style="color:#F97583">::</span><span style="color:#E1E4E8">main]</span></span>
+<span class="line"><span style="color:#F97583">async</span><span style="color:#F97583"> fn</span><span style="color:#B392F0"> main</span><span style="color:#E1E4E8">() {</span></span>
+<span class="line"><span style="color:#F97583">    let</span><span style="color:#F97583"> mut</span><span style="color:#E1E4E8"> api </span><span style="color:#F97583">=</span><span style="color:#B392F0"> OpenApi</span><span style="color:#F97583">::</span><span style="color:#B392F0">default</span><span style="color:#E1E4E8">();</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">    let</span><span style="color:#E1E4E8"> app </span><span style="color:#F97583">=</span><span style="color:#B392F0"> ApiRouter</span><span style="color:#F97583">::</span><span style="color:#B392F0">new</span><span style="color:#E1E4E8">()</span></span>
+<span class="line"><span style="color:#F97583">        .</span><span style="color:#B392F0">api_route</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"/hello"</span><span style="color:#E1E4E8">, </span><span style="color:#B392F0">get</span><span style="color:#E1E4E8">(test))</span></span>
+<span class="line"><span style="color:#F97583">        .</span><span style="color:#B392F0">finish_api_with</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">&#x26;mut</span><span style="color:#E1E4E8"> api, </span><span style="color:#F97583">|</span><span style="color:#E1E4E8">t</span><span style="color:#F97583">|</span><span style="color:#E1E4E8"> t</span><span style="color:#F97583">.</span><span style="color:#B392F0">title</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"Aide Example"</span><span style="color:#E1E4E8">));</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">    let</span><span style="color:#E1E4E8"> json </span><span style="color:#F97583">=</span><span style="color:#B392F0"> serde_json</span><span style="color:#F97583">::</span><span style="color:#B392F0">to_string_pretty</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">api)</span><span style="color:#F97583">.</span><span style="color:#B392F0">unwrap</span><span style="color:#E1E4E8">();</span></span>
+<span class="line"><span style="color:#B392F0">    println!</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"{}"</span><span style="color:#E1E4E8">, json);</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">    let</span><span style="color:#E1E4E8"> listener </span><span style="color:#F97583">=</span><span style="color:#B392F0"> TcpListener</span><span style="color:#F97583">::</span><span style="color:#B392F0">bind</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">format!</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"127.0.0.1:3031"</span><span style="color:#E1E4E8">))</span><span style="color:#F97583">.await.</span><span style="color:#B392F0">unwrap</span><span style="color:#E1E4E8">();</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#B392F0">    axum</span><span style="color:#F97583">::</span><span style="color:#B392F0">serve</span><span style="color:#E1E4E8">(listener, app)</span><span style="color:#F97583">.await.</span><span style="color:#B392F0">unwrap</span><span style="color:#E1E4E8">();</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">async</span><span style="color:#F97583"> fn</span><span style="color:#B392F0"> test</span><span style="color:#E1E4E8">() </span><span style="color:#F97583">-></span><span style="color:#F97583"> impl</span><span style="color:#B392F0"> IntoApiResponse</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#B392F0">    Json</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">json!</span><span style="color:#E1E4E8">({</span><span style="color:#9ECBFF">"hello"</span><span style="color:#F97583">:</span><span style="color:#9ECBFF"> "world"</span><span style="color:#E1E4E8">}))</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span></code></pre>
+<p>Получим такую схему:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="yaml"><code><span class="line"><span style="color:#85E89D">openapi</span><span style="color:#E1E4E8">: </span><span style="color:#79B8FF">3.1.0</span></span>
+<span class="line"><span style="color:#85E89D">info</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">  title</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">Aide Example</span></span>
+<span class="line"><span style="color:#85E89D">  version</span><span style="color:#E1E4E8">: </span><span style="color:#79B8FF">0.0.1</span></span>
+<span class="line"><span style="color:#85E89D">paths</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">  /hello</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">    get</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">      responses</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#9ECBFF">        '200'</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">          description</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">''</span></span>
+<span class="line"><span style="color:#85E89D">          content</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">            application/json</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">              schema</span><span style="color:#E1E4E8">: {}</span></span>
+<span class="line"><span style="color:#85E89D">components</span><span style="color:#E1E4E8">: {}</span></span>
+<span class="line"></span></code></pre>
+<h2 id="валидация">Валидация</h2>
+<p>Структуры с <code>#[derive(JsonSchema)]</code> будут добавлены в схему без дополнительных телодвижений, а экстракторы <code>axum_jsonschema::Json</code> будут отвечать за валидацию.</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="rust"><code><span class="line"><span style="color:#F97583">use</span><span style="color:#B392F0"> schemars</span><span style="color:#F97583">::</span><span style="color:#B392F0">JsonSchema</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#F97583">use</span><span style="color:#B392F0"> axum_jsonschema</span><span style="color:#F97583">::</span><span style="color:#B392F0">Json</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#E1E4E8">#[derive(</span><span style="color:#B392F0">Deserialize</span><span style="color:#E1E4E8">, </span><span style="color:#B392F0">JsonSchema</span><span style="color:#E1E4E8">)]</span></span>
+<span class="line"><span style="color:#F97583">struct</span><span style="color:#B392F0"> CreateNote</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#E1E4E8">    title</span><span style="color:#F97583">:</span><span style="color:#B392F0"> Option</span><span style="color:#E1E4E8">&#x3C;</span><span style="color:#B392F0">String</span><span style="color:#E1E4E8">>,</span></span>
+<span class="line"><span style="color:#E1E4E8">    text</span><span style="color:#F97583">:</span><span style="color:#B392F0"> String</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#E1E4E8">#[derive(</span><span style="color:#B392F0">Serialize</span><span style="color:#E1E4E8">, </span><span style="color:#B392F0">JsonSchema</span><span style="color:#E1E4E8">)]</span></span>
+<span class="line"><span style="color:#F97583">struct</span><span style="color:#B392F0"> Note</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#E1E4E8">    id</span><span style="color:#F97583">:</span><span style="color:#B392F0"> Uuid</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#E1E4E8">    title</span><span style="color:#F97583">:</span><span style="color:#B392F0"> String</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#E1E4E8">    text</span><span style="color:#F97583">:</span><span style="color:#B392F0"> String</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">async</span><span style="color:#F97583"> fn</span><span style="color:#B392F0"> create_note</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">Json</span><span style="color:#E1E4E8">(args)</span><span style="color:#F97583">:</span><span style="color:#B392F0"> Json</span><span style="color:#E1E4E8">&#x3C;</span><span style="color:#B392F0">CreateNote</span><span style="color:#E1E4E8">>) </span><span style="color:#F97583">-></span><span style="color:#F97583"> impl</span><span style="color:#B392F0"> IntoApiResponse</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#F97583">    let</span><span style="color:#E1E4E8"> note </span><span style="color:#F97583">=</span><span style="color:#B392F0"> Note</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#E1E4E8">        id</span><span style="color:#F97583">:</span><span style="color:#B392F0"> Uuid</span><span style="color:#F97583">::</span><span style="color:#B392F0">now_v7</span><span style="color:#E1E4E8">(),</span></span>
+<span class="line"><span style="color:#E1E4E8">        title</span><span style="color:#F97583">:</span><span style="color:#E1E4E8"> args</span><span style="color:#F97583">.</span><span style="color:#E1E4E8">title</span><span style="color:#F97583">.</span><span style="color:#B392F0">unwrap_or</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"New note"</span><span style="color:#F97583">.</span><span style="color:#B392F0">into</span><span style="color:#E1E4E8">()),</span></span>
+<span class="line"><span style="color:#E1E4E8">        text</span><span style="color:#F97583">:</span><span style="color:#E1E4E8"> args</span><span style="color:#F97583">.</span><span style="color:#E1E4E8">text,</span></span>
+<span class="line"><span style="color:#E1E4E8">    };</span></span>
+<span class="line"><span style="color:#B392F0">    Json</span><span style="color:#E1E4E8">(note)</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">let</span><span style="color:#E1E4E8"> app </span><span style="color:#F97583">=</span><span style="color:#B392F0"> ApiRouter</span><span style="color:#F97583">::</span><span style="color:#B392F0">new</span><span style="color:#E1E4E8">()</span></span>
+<span class="line"><span style="color:#F97583">    .</span><span style="color:#B392F0">api_route</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"/notes"</span><span style="color:#E1E4E8">, </span><span style="color:#B392F0">post</span><span style="color:#E1E4E8">(create_note))</span></span>
+<span class="line"></span></code></pre>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="yaml"><code><span class="line"><span style="color:#85E89D">openapi</span><span style="color:#E1E4E8">: </span><span style="color:#79B8FF">3.1.0</span></span>
+<span class="line"><span style="color:#85E89D">info</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">  title</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">My Notes</span></span>
+<span class="line"><span style="color:#85E89D">  version</span><span style="color:#E1E4E8">: </span><span style="color:#79B8FF">0.0.1</span></span>
+<span class="line"><span style="color:#85E89D">paths</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">  /notes</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">    post</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">      requestBody</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">        content</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">          application/json</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">            schema</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">              $ref</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">'#/components/schemas/CreateNote'</span></span>
+<span class="line"><span style="color:#85E89D">        required</span><span style="color:#E1E4E8">: </span><span style="color:#79B8FF">true</span></span>
+<span class="line"><span style="color:#85E89D">      responses</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#9ECBFF">        '200'</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">          description</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">''</span></span>
+<span class="line"><span style="color:#85E89D">          content</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">            application/json</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">              schema</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">                $ref</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">'#/components/schemas/Note'</span></span>
+<span class="line"><span style="color:#85E89D">components</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">  schemas</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">    CreateNote</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">      type</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">object</span></span>
+<span class="line"><span style="color:#85E89D">      required</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#E1E4E8">        - </span><span style="color:#9ECBFF">text</span></span>
+<span class="line"><span style="color:#85E89D">      properties</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">        text</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">          type</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">string</span></span>
+<span class="line"><span style="color:#85E89D">        title</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">          type</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#E1E4E8">            - </span><span style="color:#9ECBFF">string</span></span>
+<span class="line"><span style="color:#E1E4E8">            - </span><span style="color:#9ECBFF">'null'</span></span>
+<span class="line"><span style="color:#85E89D">    Note</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">      type</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">object</span></span>
+<span class="line"><span style="color:#85E89D">      required</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#E1E4E8">        - </span><span style="color:#9ECBFF">id</span></span>
+<span class="line"><span style="color:#E1E4E8">        - </span><span style="color:#9ECBFF">text</span></span>
+<span class="line"><span style="color:#E1E4E8">        - </span><span style="color:#9ECBFF">title</span></span>
+<span class="line"><span style="color:#85E89D">      properties</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">        id</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">          type</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">string</span></span>
+<span class="line"><span style="color:#85E89D">          format</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">uuid</span></span>
+<span class="line"><span style="color:#85E89D">        text</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">          type</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">string</span></span>
+<span class="line"><span style="color:#85E89D">        title</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">          type</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">string</span></span>
+<span class="line"></span></code></pre>
+<p>Для Query и Path использовать кастомные экстракторы не нужно, но штуки типа <code>Path&#x3C;String></code> работать не будут, нужны структуры.</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="rust"><code><span class="line"><span style="color:#F97583">use</span><span style="color:#B392F0"> axum</span><span style="color:#F97583">::</span><span style="color:#B392F0">extract</span><span style="color:#F97583">::</span><span style="color:#B392F0">Path</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#E1E4E8">#[derive(</span><span style="color:#B392F0">Deserialize</span><span style="color:#E1E4E8">, </span><span style="color:#B392F0">JsonSchema</span><span style="color:#E1E4E8">)]</span></span>
+<span class="line"><span style="color:#F97583">struct</span><span style="color:#B392F0"> NoteId</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#6A737D">    /// Uuid v7</span></span>
+<span class="line"><span style="color:#E1E4E8">    note_id</span><span style="color:#F97583">:</span><span style="color:#B392F0"> Uuid</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">async</span><span style="color:#F97583"> fn</span><span style="color:#B392F0"> find_note</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">Path</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">NoteId</span><span style="color:#E1E4E8"> { note_id })</span><span style="color:#F97583">:</span><span style="color:#B392F0"> Path</span><span style="color:#E1E4E8">&#x3C;</span><span style="color:#B392F0">NoteId</span><span style="color:#E1E4E8">>) </span><span style="color:#F97583">-></span><span style="color:#F97583"> impl</span><span style="color:#B392F0"> IntoApiResponse</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#F97583">    let</span><span style="color:#E1E4E8"> note </span><span style="color:#F97583">=</span><span style="color:#B392F0"> Note</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#E1E4E8">        id</span><span style="color:#F97583">:</span><span style="color:#E1E4E8"> note_id,</span></span>
+<span class="line"><span style="color:#E1E4E8">        title</span><span style="color:#F97583">:</span><span style="color:#9ECBFF"> "New note"</span><span style="color:#F97583">.</span><span style="color:#B392F0">into</span><span style="color:#E1E4E8">(),</span></span>
+<span class="line"><span style="color:#E1E4E8">        text</span><span style="color:#F97583">:</span><span style="color:#9ECBFF"> "Some texxt"</span><span style="color:#F97583">.</span><span style="color:#B392F0">into</span><span style="color:#E1E4E8">(),</span></span>
+<span class="line"><span style="color:#E1E4E8">    };</span></span>
+<span class="line"><span style="color:#B392F0">    Json</span><span style="color:#E1E4E8">(note)</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">let</span><span style="color:#E1E4E8"> app </span><span style="color:#F97583">=</span><span style="color:#B392F0"> ApiRouter</span><span style="color:#F97583">::</span><span style="color:#B392F0">new</span><span style="color:#E1E4E8">()</span></span>
+<span class="line"><span style="color:#F97583">    .</span><span style="color:#B392F0">api_route</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"/notes/:note_id"</span><span style="color:#E1E4E8">, </span><span style="color:#B392F0">get</span><span style="color:#E1E4E8">(find_note))</span></span>
+<span class="line"><span style="color:#F97583">    .</span><span style="color:#B392F0">finish_api_with</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">&#x26;mut</span><span style="color:#E1E4E8"> api, </span><span style="color:#F97583">|</span><span style="color:#E1E4E8">t</span><span style="color:#F97583">|</span><span style="color:#E1E4E8"> t</span><span style="color:#F97583">.</span><span style="color:#B392F0">title</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"My Notes"</span><span style="color:#E1E4E8">)</span><span style="color:#F97583">.</span><span style="color:#B392F0">version</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"0.0.1"</span><span style="color:#E1E4E8">));</span></span>
+<span class="line"></span></code></pre>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="yaml"><code><span class="line"><span style="color:#85E89D">paths</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">  /notes/{note_id}</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">    get</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">      parameters</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#E1E4E8">        - </span><span style="color:#85E89D">in</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">path</span></span>
+<span class="line"><span style="color:#85E89D">          name</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">note_id</span></span>
+<span class="line"><span style="color:#85E89D">          description</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">Uuid v7</span><span style="color:#6A737D"> # from comment</span></span>
+<span class="line"><span style="color:#85E89D">          required</span><span style="color:#E1E4E8">: </span><span style="color:#79B8FF">true</span></span>
+<span class="line"><span style="color:#85E89D">          schema</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">            type</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">string</span></span>
+<span class="line"><span style="color:#85E89D">            format</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">uuid</span></span>
+<span class="line"><span style="color:#85E89D">          style</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">simple</span></span>
+<span class="line"></span></code></pre>
+<h2 id="обработка-ошибок">Обработка ошибок</h2>
+<p>Если мы хотим иметь свой собственный формат ошибок, то нам все таки нужно обернуть все экстракторы в свои ньютайпы.</p>
+<p>А мы этого точно хотим. Ведь если для requestBody ошибка по умолчанию будет выглядеть так:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="http"><code><span class="line"><span style="color:#E1E4E8">HTTP/1.1 400 Bad Request</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#E1E4E8">{</span></span>
+<span class="line"><span style="color:#79B8FF">  "error"</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">"request schema validation failed"</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#79B8FF">  "type"</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">"schema"</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#79B8FF">  "schema_validation"</span><span style="color:#E1E4E8">: [</span></span>
+<span class="line"><span style="color:#E1E4E8">    {</span></span>
+<span class="line"><span style="color:#79B8FF">      "instance_location"</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">""</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#79B8FF">      "keyword_location"</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">"/required"</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#79B8FF">      "error"</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">"</span><span style="color:#79B8FF">\"</span><span style="color:#9ECBFF">text</span><span style="color:#79B8FF">\"</span><span style="color:#9ECBFF"> is a required property"</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">  ]</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span></code></pre>
+<p>То для Query и Path будет такая Plain Text красота:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="http"><code><span class="line"><span style="color:#E1E4E8">HTTP/1.1 400 Bad Request</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#E1E4E8">Invalid URL: UUID parsing failed: invalid length: expected length 32 for simple format, found 3</span></span>
+<span class="line"></span></code></pre>
+<p>Начнем с того что добавим свою ошибку в проект:</p>
+<ul>
+<li>
+<p><code>crate::Error</code> - это основной энам нашего приложения, в который обернуты все прочие ошибки</p>
+</li>
+<li>
+<p><code>crate::ErrorResponse</code> - это то что будет возвращаться в ответе и попадет в openAPI схему:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="plaintext"><code><span class="line"><span>Error -> ErrorResponse -> Response</span></span>
+<span class="line"><span></span></span></code></pre>
+</li>
+</ul>
+<p>Этот путь они могут проходить таким способом:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="rust"><code><span class="line"><span style="color:#E1E4E8">#[derive(thiserror</span><span style="color:#F97583">::</span><span style="color:#B392F0">Error</span><span style="color:#E1E4E8">, </span><span style="color:#B392F0">Debug</span><span style="color:#E1E4E8">)]</span></span>
+<span class="line"><span style="color:#F97583">pub</span><span style="color:#F97583"> enum</span><span style="color:#B392F0"> Error</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#E1E4E8">    #[error(</span><span style="color:#9ECBFF">"validation"</span><span style="color:#E1E4E8">)]</span></span>
+<span class="line"><span style="color:#B392F0">    PathValidation</span><span style="color:#E1E4E8">(#[from] </span><span style="color:#B392F0">PathRejection</span><span style="color:#E1E4E8">),</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">    // JsonSchemaRejection, QueryValidation, ...</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#E1E4E8">    #[error(</span><span style="color:#9ECBFF">"unexpected"</span><span style="color:#E1E4E8">)]</span></span>
+<span class="line"><span style="color:#B392F0">    Unexpected</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">String</span><span style="color:#E1E4E8">),</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#E1E4E8">#[derive(</span><span style="color:#B392F0">Serialize</span><span style="color:#E1E4E8">, </span><span style="color:#B392F0">JsonSchema</span><span style="color:#E1E4E8">)]</span></span>
+<span class="line"><span style="color:#E1E4E8">#[serde(tag </span><span style="color:#F97583">=</span><span style="color:#9ECBFF"> "error"</span><span style="color:#E1E4E8">, rename_all </span><span style="color:#F97583">=</span><span style="color:#9ECBFF"> "snake_case"</span><span style="color:#E1E4E8">)]</span></span>
+<span class="line"><span style="color:#F97583">pub</span><span style="color:#F97583"> enum</span><span style="color:#B392F0"> ErrorResponse</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#B392F0">    PathValidation</span><span style="color:#E1E4E8"> { message</span><span style="color:#F97583">:</span><span style="color:#B392F0"> String</span><span style="color:#E1E4E8"> },</span></span>
+<span class="line"><span style="color:#B392F0">    QueryValidation</span><span style="color:#E1E4E8"> { message</span><span style="color:#F97583">:</span><span style="color:#B392F0"> String</span><span style="color:#E1E4E8"> },</span></span>
+<span class="line"><span style="color:#B392F0">    JsonValidation</span><span style="color:#E1E4E8"> { message</span><span style="color:#F97583">:</span><span style="color:#B392F0"> String</span><span style="color:#E1E4E8">, details</span><span style="color:#F97583">:</span><span style="color:#B392F0"> Option</span><span style="color:#E1E4E8">&#x3C;</span><span style="color:#B392F0">Value</span><span style="color:#E1E4E8">> },</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#B392F0">    Unexpected</span><span style="color:#E1E4E8"> { message</span><span style="color:#F97583">:</span><span style="color:#B392F0"> String</span><span style="color:#E1E4E8"> },</span></span>
+<span class="line"><span style="color:#E1E4E8"> }</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">impl</span><span style="color:#B392F0"> From</span><span style="color:#E1E4E8">&#x3C;</span><span style="color:#B392F0">Error</span><span style="color:#E1E4E8">> </span><span style="color:#F97583">for</span><span style="color:#B392F0"> ErrorResponse</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#F97583">    fn</span><span style="color:#B392F0"> from</span><span style="color:#E1E4E8">(value</span><span style="color:#F97583">:</span><span style="color:#B392F0"> Error</span><span style="color:#E1E4E8">) </span><span style="color:#F97583">-></span><span style="color:#79B8FF"> Self</span><span style="color:#E1E4E8"> { </span><span style="color:#6A737D">/* ... */</span><span style="color:#E1E4E8"> }</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">impl</span><span style="color:#B392F0"> IntoResponse</span><span style="color:#F97583"> for</span><span style="color:#B392F0"> Error</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#F97583">    fn</span><span style="color:#B392F0"> into_response</span><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">self</span><span style="color:#E1E4E8">) </span><span style="color:#F97583">-></span><span style="color:#B392F0"> axum</span><span style="color:#F97583">::</span><span style="color:#B392F0">response</span><span style="color:#F97583">::</span><span style="color:#B392F0">Response</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#F97583">        let</span><span style="color:#F97583"> mut</span><span style="color:#E1E4E8"> res </span><span style="color:#F97583">=</span><span style="color:#B392F0"> axum</span><span style="color:#F97583">::</span><span style="color:#B392F0">Json</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">ErrorResponse</span><span style="color:#F97583">::</span><span style="color:#B392F0">from</span><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">self</span><span style="color:#E1E4E8">))</span><span style="color:#F97583">.</span><span style="color:#B392F0">into_response</span><span style="color:#E1E4E8">();</span></span>
+<span class="line"><span style="color:#F97583">        *</span><span style="color:#E1E4E8">res</span><span style="color:#F97583">.</span><span style="color:#B392F0">status_mut</span><span style="color:#E1E4E8">() </span><span style="color:#F97583">=</span><span style="color:#B392F0"> StatusCode</span><span style="color:#F97583">::</span><span style="color:#79B8FF">BAD_REQUEST</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        res</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">let</span><span style="color:#E1E4E8"> app </span><span style="color:#F97583">=</span><span style="color:#B392F0"> ApiRouter</span><span style="color:#F97583">::</span><span style="color:#B392F0">new</span><span style="color:#E1E4E8">()</span></span>
+<span class="line"><span style="color:#6A737D">    //...</span></span>
+<span class="line"><span style="color:#F97583">    .</span><span style="color:#B392F0">finish_api_with</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">&#x26;mut</span><span style="color:#E1E4E8"> api, </span><span style="color:#F97583">|</span><span style="color:#E1E4E8">t</span><span style="color:#F97583">|</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#E1E4E8">        t</span><span style="color:#F97583">.</span><span style="color:#B392F0">title</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"My Notes"</span><span style="color:#E1E4E8">)</span></span>
+<span class="line"><span style="color:#F97583">            .</span><span style="color:#B392F0">version</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"0.0.1"</span><span style="color:#E1E4E8">)</span></span>
+<span class="line"><span style="color:#F97583">            .</span><span style="color:#B392F0">default_response</span><span style="color:#F97583">::</span><span style="color:#E1E4E8">&#x3C;</span><span style="color:#B392F0">Json</span><span style="color:#E1E4E8">&#x3C;</span><span style="color:#B392F0">ErrorResponse</span><span style="color:#E1E4E8">>>()</span></span>
+<span class="line"><span style="color:#E1E4E8">    });</span></span>
+<span class="line"></span></code></pre>
+<p>Теперь нам нужно обернуть экстракторы, чтобы использовать свою ошибку:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="rust"><code><span class="line"><span style="color:#F97583">use</span><span style="color:#B392F0"> axum_macros</span><span style="color:#F97583">::</span><span style="color:#B392F0">FromRequestParts</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#E1E4E8">#[derive(</span><span style="color:#B392F0">FromRequestParts</span><span style="color:#E1E4E8">)]</span></span>
+<span class="line"><span style="color:#E1E4E8">#[from_request(via(axum</span><span style="color:#F97583">::</span><span style="color:#E1E4E8">extract</span><span style="color:#F97583">::</span><span style="color:#B392F0">Path</span><span style="color:#E1E4E8">), rejection(</span><span style="color:#B392F0">Error</span><span style="color:#E1E4E8">))]</span></span>
+<span class="line"><span style="color:#F97583">pub</span><span style="color:#F97583"> struct</span><span style="color:#B392F0"> Path</span><span style="color:#E1E4E8">&#x3C;</span><span style="color:#B392F0">T</span><span style="color:#E1E4E8">>(</span><span style="color:#F97583">pub</span><span style="color:#B392F0"> T</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"></span></code></pre>
+<p>Этого достаточно для обычного <code>axum::routing::get</code>, но для того чтобы это заработало в <code>aide::axum::routing::get</code>, нужно чтобы экстрактор имплементировал трейты <code>OperationInput</code> и <code>OperationOutput</code>.</p>
+<p>Для этого в aide есть макрос аналогичный макросам <code>FromRequestParts</code> и <code>FromParts</code> - <code>OperationIo</code>:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="rust"><code><span class="line"><span style="color:#F97583">use</span><span style="color:#B392F0"> axum_macros</span><span style="color:#F97583">::</span><span style="color:#B392F0">FromRequestParts</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#F97583">use</span><span style="color:#B392F0"> aide</span><span style="color:#F97583">::</span><span style="color:#B392F0">OperationIo</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#E1E4E8">#[derive(</span><span style="color:#B392F0">FromRequestParts</span><span style="color:#E1E4E8">, </span><span style="color:#B392F0">OperationIo</span><span style="color:#E1E4E8">)]</span></span>
+<span class="line"><span style="color:#E1E4E8">#[from_request(via(axum</span><span style="color:#F97583">::</span><span style="color:#E1E4E8">extract</span><span style="color:#F97583">::</span><span style="color:#B392F0">Path</span><span style="color:#E1E4E8">), rejection(</span><span style="color:#B392F0">Error</span><span style="color:#E1E4E8">))]</span></span>
+<span class="line"><span style="color:#E1E4E8">#[aide(</span></span>
+<span class="line"><span style="color:#E1E4E8">    input_with </span><span style="color:#F97583">=</span><span style="color:#9ECBFF"> "axum::extract::Path&#x3C;T>"</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#E1E4E8">    output_with </span><span style="color:#F97583">=</span><span style="color:#9ECBFF"> "axum_jsonschema::Json&#x3C;T>"</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#E1E4E8">    json_schema</span></span>
+<span class="line"><span style="color:#E1E4E8">)]</span></span>
+<span class="line"><span style="color:#F97583">pub</span><span style="color:#F97583"> struct</span><span style="color:#B392F0"> Path</span><span style="color:#E1E4E8">&#x3C;</span><span style="color:#B392F0">T</span><span style="color:#E1E4E8">>(</span><span style="color:#F97583">pub</span><span style="color:#B392F0"> T</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"></span></code></pre>
+<p>Для <code>Query</code> все то же самое, а вот с <code>axum_jsonschema::Json</code> немного сложнее:</p>
+<ol>
+<li>Нужна фича <code>aide</code>.
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="toml"><code><span class="line"><span style="color:#E1E4E8">axum-jsonschema = {version = </span><span style="color:#9ECBFF">"0.8.0"</span><span style="color:#E1E4E8">, features = [</span><span style="color:#9ECBFF">"aide"</span><span style="color:#E1E4E8">]}</span></span>
+<span class="line"></span></code></pre>
+</li>
+<li><code>#[from]</code> не поможет и нужно сделать <code>impl From&#x3C;JsonSchemaRejection> for Error</code> самостоятельно</li>
+<li>оба <code>input_with</code> и <code>output_with</code> в макросе <code>aide</code> должны быть одинаковые.</li>
+<li>и так как эта структура используется еще и для ответа, нужно имплементировать <code>IntoResponse</code> трейт</li>
+</ol>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="rust"><code><span class="line"><span style="color:#E1E4E8">#[derive(thiserror</span><span style="color:#F97583">::</span><span style="color:#B392F0">Error</span><span style="color:#E1E4E8">, </span><span style="color:#B392F0">Debug</span><span style="color:#E1E4E8">)]</span></span>
+<span class="line"><span style="color:#F97583">pub</span><span style="color:#F97583"> enum</span><span style="color:#B392F0"> Error</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#E1E4E8">    #[error(</span><span style="color:#9ECBFF">"validation"</span><span style="color:#E1E4E8">)]</span></span>
+<span class="line"><span style="color:#B392F0">    JsonValidation</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">JsonSchemaRejection</span><span style="color:#E1E4E8">),</span></span>
+<span class="line"><span style="color:#E1E4E8">    #[error(</span><span style="color:#9ECBFF">"validation"</span><span style="color:#E1E4E8">)]</span></span>
+<span class="line"><span style="color:#B392F0">    QueryValidation</span><span style="color:#E1E4E8">(#[from] </span><span style="color:#B392F0">QueryRejection</span><span style="color:#E1E4E8">),</span></span>
+<span class="line"><span style="color:#E1E4E8">    #[error(</span><span style="color:#9ECBFF">"validation"</span><span style="color:#E1E4E8">)]</span></span>
+<span class="line"><span style="color:#B392F0">    PathValidation</span><span style="color:#E1E4E8">(#[from] </span><span style="color:#B392F0">PathRejection</span><span style="color:#E1E4E8">),</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#E1E4E8">    #[error(</span><span style="color:#9ECBFF">"unexpected"</span><span style="color:#E1E4E8">)]</span></span>
+<span class="line"><span style="color:#B392F0">    Unexpected</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">String</span><span style="color:#E1E4E8">),</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">impl</span><span style="color:#B392F0"> From</span><span style="color:#E1E4E8">&#x3C;</span><span style="color:#B392F0">JsonSchemaRejection</span><span style="color:#E1E4E8">> </span><span style="color:#F97583">for</span><span style="color:#B392F0"> Error</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#F97583">    fn</span><span style="color:#B392F0"> from</span><span style="color:#E1E4E8">(rejection</span><span style="color:#F97583">:</span><span style="color:#B392F0"> JsonSchemaRejection</span><span style="color:#E1E4E8">) </span><span style="color:#F97583">-></span><span style="color:#79B8FF"> Self</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#79B8FF">        Self</span><span style="color:#F97583">::</span><span style="color:#B392F0">JsonValidation</span><span style="color:#E1E4E8">(rejection)</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#E1E4E8">#[derive(</span><span style="color:#B392F0">FromRequest</span><span style="color:#E1E4E8">, </span><span style="color:#B392F0">OperationIo</span><span style="color:#E1E4E8">)]</span></span>
+<span class="line"><span style="color:#E1E4E8">#[from_request(via(axum_jsonschema</span><span style="color:#F97583">::</span><span style="color:#B392F0">Json</span><span style="color:#E1E4E8">), rejection(</span><span style="color:#B392F0">Error</span><span style="color:#E1E4E8">))]</span></span>
+<span class="line"><span style="color:#E1E4E8">#[aide(</span></span>
+<span class="line"><span style="color:#E1E4E8">    input_with </span><span style="color:#F97583">=</span><span style="color:#9ECBFF"> "axum_jsonschema::Json&#x3C;T>"</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#E1E4E8">    output_with </span><span style="color:#F97583">=</span><span style="color:#9ECBFF"> "axum_jsonschema::Json&#x3C;T>"</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#E1E4E8">    json_schema</span></span>
+<span class="line"><span style="color:#E1E4E8">)]</span></span>
+<span class="line"><span style="color:#F97583">pub</span><span style="color:#F97583"> struct</span><span style="color:#B392F0"> Json</span><span style="color:#E1E4E8">&#x3C;</span><span style="color:#B392F0">T</span><span style="color:#E1E4E8">>(</span><span style="color:#F97583">pub</span><span style="color:#B392F0"> T</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">impl</span><span style="color:#E1E4E8">&#x3C;</span><span style="color:#B392F0">T</span><span style="color:#E1E4E8">> </span><span style="color:#B392F0">IntoResponse</span><span style="color:#F97583"> for</span><span style="color:#B392F0"> Json</span><span style="color:#E1E4E8">&#x3C;</span><span style="color:#B392F0">T</span><span style="color:#E1E4E8">></span></span>
+<span class="line"><span style="color:#F97583">where</span></span>
+<span class="line"><span style="color:#B392F0">    T</span><span style="color:#F97583">:</span><span style="color:#B392F0"> Serialize</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#E1E4E8">{</span></span>
+<span class="line"><span style="color:#F97583">    fn</span><span style="color:#B392F0"> into_response</span><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">self</span><span style="color:#E1E4E8">) </span><span style="color:#F97583">-></span><span style="color:#B392F0"> axum</span><span style="color:#F97583">::</span><span style="color:#B392F0">response</span><span style="color:#F97583">::</span><span style="color:#B392F0">Response</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#B392F0">        axum</span><span style="color:#F97583">::</span><span style="color:#B392F0">Json</span><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">self</span><span style="color:#F97583">.</span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">)</span><span style="color:#F97583">.</span><span style="color:#B392F0">into_response</span><span style="color:#E1E4E8">()</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span></code></pre>
+<h2 id="документирование">Документирование</h2>
+<p>Помимо <code>///</code> комментариев у полей структур (которые попадают в description поле) и метода ApiRouter’a <code>finish_api_with()</code>, для каждого метода мы можем использовать функцию со вторым аргументом, для трансформации openAPI операции: <code>get_with</code>, <code>post_with</code> и тд:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="rust"><code><span class="line"><span style="color:#F97583">let</span><span style="color:#E1E4E8"> app </span><span style="color:#F97583">=</span><span style="color:#B392F0"> ApiRouter</span><span style="color:#F97583">::</span><span style="color:#B392F0">new</span><span style="color:#E1E4E8">()</span></span>
+<span class="line"><span style="color:#F97583">  .</span><span style="color:#B392F0">api_route</span><span style="color:#E1E4E8">(</span></span>
+<span class="line"><span style="color:#9ECBFF">      "/notes/:note_id"</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#B392F0">      get_with</span><span style="color:#E1E4E8">(find_note, </span><span style="color:#F97583">|</span><span style="color:#E1E4E8">t</span><span style="color:#F97583">|</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#E1E4E8">          t</span><span style="color:#F97583">.</span><span style="color:#B392F0">summary</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"Get a note by its ID"</span><span style="color:#E1E4E8">)</span></span>
+<span class="line"><span style="color:#F97583">            .</span><span style="color:#B392F0">description</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"Retrieve a single note using its unique identifier."</span><span style="color:#E1E4E8">)</span></span>
+<span class="line"><span style="color:#E1E4E8">      }),</span></span>
+<span class="line"><span style="color:#E1E4E8">  )</span></span>
+<span class="line"><span style="color:#F97583">  .</span><span style="color:#B392F0">finish_api_with</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">&#x26;mut</span><span style="color:#E1E4E8"> api, </span><span style="color:#F97583">|</span><span style="color:#E1E4E8">t</span><span style="color:#F97583">|</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#E1E4E8">      t</span><span style="color:#F97583">.</span><span style="color:#B392F0">title</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"My Notes"</span><span style="color:#E1E4E8">)</span></span>
+<span class="line"><span style="color:#F97583">        .</span><span style="color:#B392F0">version</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"0.0.1"</span><span style="color:#E1E4E8">)</span></span>
+<span class="line"><span style="color:#F97583">        .</span><span style="color:#B392F0">default_response</span><span style="color:#F97583">::</span><span style="color:#E1E4E8">&#x3C;</span><span style="color:#B392F0">Json</span><span style="color:#E1E4E8">&#x3C;</span><span style="color:#B392F0">ErrorResponse</span><span style="color:#E1E4E8">>>()</span></span>
+<span class="line"><span style="color:#E1E4E8">  });</span></span>
+<span class="line"></span></code></pre>
+<p>К сожалению, если указывать статус ответа самостоятельно, нужно будет дублировать это в трансформ-функции, иначе респонз пропадет из итоговой схемы:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="rust"><code><span class="line"><span style="color:#F97583">async</span><span style="color:#F97583"> fn</span><span style="color:#B392F0"> create_note</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">Json</span><span style="color:#E1E4E8">(args)</span><span style="color:#F97583">:</span><span style="color:#B392F0"> Json</span><span style="color:#E1E4E8">&#x3C;</span><span style="color:#B392F0">CreateNote</span><span style="color:#E1E4E8">>) </span><span style="color:#F97583">-></span><span style="color:#F97583"> impl</span><span style="color:#B392F0"> IntoApiResponse</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#F97583">    let</span><span style="color:#E1E4E8"> note </span><span style="color:#F97583">=</span><span style="color:#B392F0"> Note</span><span style="color:#E1E4E8"> { </span><span style="color:#6A737D">/* .. */</span><span style="color:#E1E4E8"> };</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">    // Json(note)</span></span>
+<span class="line"><span style="color:#E1E4E8">    (</span><span style="color:#B392F0">StatusCode</span><span style="color:#F97583">::</span><span style="color:#79B8FF">CREATED</span><span style="color:#E1E4E8">, </span><span style="color:#B392F0">Json</span><span style="color:#E1E4E8">(note))</span><span style="color:#F97583">.</span><span style="color:#B392F0">into_response</span><span style="color:#E1E4E8">()</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">let</span><span style="color:#E1E4E8"> app </span><span style="color:#F97583">=</span><span style="color:#B392F0"> ApiRouter</span><span style="color:#F97583">::</span><span style="color:#B392F0">new</span><span style="color:#E1E4E8">()</span></span>
+<span class="line"><span style="color:#F97583">  .</span><span style="color:#B392F0">api_route</span><span style="color:#E1E4E8">(</span></span>
+<span class="line"><span style="color:#9ECBFF">      "/notes"</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#B392F0">      post_with</span><span style="color:#E1E4E8">(create_note, </span><span style="color:#F97583">|</span><span style="color:#E1E4E8">t</span><span style="color:#F97583">|</span><span style="color:#E1E4E8"> t</span><span style="color:#F97583">.</span><span style="color:#B392F0">response</span><span style="color:#F97583">::</span><span style="color:#E1E4E8">&#x3C;</span><span style="color:#79B8FF">201</span><span style="color:#E1E4E8">, </span><span style="color:#B392F0">Json</span><span style="color:#E1E4E8">&#x3C;</span><span style="color:#B392F0">Note</span><span style="color:#E1E4E8">>>()),</span></span>
+<span class="line"><span style="color:#E1E4E8">  )</span></span>
+<span class="line"></span></code></pre>
+<p><code>aide</code> по умолчанию пробует прожевать все экстракторы, и если экстрактор не реализует трейт OperationInput будет грустинка.
+Для таких случаев есть <a href="https://docs.rs/aide/latest/aide/struct.NoApi.html">NoApi</a>:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="rust"><code><span class="line"><span style="color:#F97583">async</span><span style="color:#F97583"> fn</span><span style="color:#B392F0"> create_note</span><span style="color:#E1E4E8">(</span></span>
+<span class="line"><span style="color:#B392F0">  Json</span><span style="color:#E1E4E8">(args)</span><span style="color:#F97583">:</span><span style="color:#B392F0"> Json</span><span style="color:#E1E4E8">&#x3C;</span><span style="color:#B392F0">CreateNote</span><span style="color:#E1E4E8">>,</span></span>
+<span class="line"><span style="color:#B392F0">  NoApi</span><span style="color:#E1E4E8">(db)</span><span style="color:#F97583">:</span><span style="color:#B392F0"> NoApi</span><span style="color:#E1E4E8">&#x3C;</span><span style="color:#B392F0">DB</span><span style="color:#E1E4E8">></span></span>
+<span class="line"><span style="color:#E1E4E8">) </span><span style="color:#F97583">-></span><span style="color:#F97583"> impl</span><span style="color:#B392F0"> IntoApiResponse</span></span>
+<span class="line"></span></code></pre>
+<h2 id="весь-код-целиком">Весь код целиком</h2>
+<p><a href="https://github.com/borolgs/axum-examples/blob/main/openapi-aide">https://github.com/borolgs/axum-examples/blob/main/openapi-aide</a></p>
+<details>
+  <summary>main.rs</summary>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="rust"><code><span class="line"><span style="color:#F97583">use</span><span style="color:#B392F0"> aide</span><span style="color:#F97583">::</span><span style="color:#E1E4E8">{</span></span>
+<span class="line"><span style="color:#B392F0">    axum</span><span style="color:#F97583">::</span><span style="color:#E1E4E8">{</span></span>
+<span class="line"><span style="color:#B392F0">        routing</span><span style="color:#F97583">::</span><span style="color:#E1E4E8">{get, get_with},</span></span>
+<span class="line"><span style="color:#B392F0">        ApiRouter</span><span style="color:#E1E4E8">, </span><span style="color:#B392F0">IntoApiResponse</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#E1E4E8">    },</span></span>
+<span class="line"><span style="color:#B392F0">    openapi</span><span style="color:#F97583">::</span><span style="color:#B392F0">OpenApi</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#B392F0">    OperationIo</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#E1E4E8">};</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">use</span><span style="color:#B392F0"> axum</span><span style="color:#F97583">::</span><span style="color:#E1E4E8">{</span></span>
+<span class="line"><span style="color:#B392F0">    extract</span><span style="color:#F97583">::</span><span style="color:#B392F0">rejection</span><span style="color:#F97583">::</span><span style="color:#E1E4E8">{</span><span style="color:#B392F0">PathRejection</span><span style="color:#E1E4E8">, </span><span style="color:#B392F0">QueryRejection</span><span style="color:#E1E4E8">},</span></span>
+<span class="line"><span style="color:#B392F0">    http</span><span style="color:#F97583">::</span><span style="color:#B392F0">StatusCode</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#B392F0">    response</span><span style="color:#F97583">::</span><span style="color:#B392F0">IntoResponse</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#E1E4E8">};</span></span>
+<span class="line"><span style="color:#F97583">use</span><span style="color:#B392F0"> axum_jsonschema</span><span style="color:#F97583">::</span><span style="color:#B392F0">JsonSchemaRejection</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#F97583">use</span><span style="color:#B392F0"> axum_macros</span><span style="color:#F97583">::</span><span style="color:#E1E4E8">{</span><span style="color:#B392F0">FromRequest</span><span style="color:#E1E4E8">, </span><span style="color:#B392F0">FromRequestParts</span><span style="color:#E1E4E8">};</span></span>
+<span class="line"><span style="color:#F97583">use</span><span style="color:#B392F0"> schemars</span><span style="color:#F97583">::</span><span style="color:#B392F0">JsonSchema</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#F97583">use</span><span style="color:#B392F0"> serde</span><span style="color:#F97583">::</span><span style="color:#E1E4E8">{</span><span style="color:#B392F0">Deserialize</span><span style="color:#E1E4E8">, </span><span style="color:#B392F0">Serialize</span><span style="color:#E1E4E8">};</span></span>
+<span class="line"><span style="color:#F97583">use</span><span style="color:#B392F0"> serde_json</span><span style="color:#F97583">::</span><span style="color:#E1E4E8">{json, </span><span style="color:#B392F0">Value</span><span style="color:#E1E4E8">};</span></span>
+<span class="line"><span style="color:#F97583">use</span><span style="color:#B392F0"> tokio</span><span style="color:#F97583">::</span><span style="color:#B392F0">net</span><span style="color:#F97583">::</span><span style="color:#B392F0">TcpListener</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#F97583">use</span><span style="color:#B392F0"> uuid</span><span style="color:#F97583">::</span><span style="color:#B392F0">Uuid</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// Errors</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">pub</span><span style="color:#F97583"> type</span><span style="color:#B392F0"> Result</span><span style="color:#E1E4E8">&#x3C;</span><span style="color:#B392F0">T</span><span style="color:#E1E4E8">> </span><span style="color:#F97583">=</span><span style="color:#B392F0"> std</span><span style="color:#F97583">::</span><span style="color:#B392F0">result</span><span style="color:#F97583">::</span><span style="color:#B392F0">Result</span><span style="color:#E1E4E8">&#x3C;</span><span style="color:#B392F0">T</span><span style="color:#E1E4E8">, </span><span style="color:#B392F0">Error</span><span style="color:#E1E4E8">>;</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#E1E4E8">#[derive(thiserror</span><span style="color:#F97583">::</span><span style="color:#B392F0">Error</span><span style="color:#E1E4E8">, </span><span style="color:#B392F0">Debug</span><span style="color:#E1E4E8">)]</span></span>
+<span class="line"><span style="color:#F97583">pub</span><span style="color:#F97583"> enum</span><span style="color:#B392F0"> Error</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#E1E4E8">    #[error(</span><span style="color:#9ECBFF">"validation"</span><span style="color:#E1E4E8">)]</span></span>
+<span class="line"><span style="color:#B392F0">    JsonValidation</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">JsonSchemaRejection</span><span style="color:#E1E4E8">),</span></span>
+<span class="line"><span style="color:#E1E4E8">    #[error(</span><span style="color:#9ECBFF">"validation"</span><span style="color:#E1E4E8">)]</span></span>
+<span class="line"><span style="color:#B392F0">    QueryValidation</span><span style="color:#E1E4E8">(#[from] </span><span style="color:#B392F0">QueryRejection</span><span style="color:#E1E4E8">),</span></span>
+<span class="line"><span style="color:#E1E4E8">    #[error(</span><span style="color:#9ECBFF">"validation"</span><span style="color:#E1E4E8">)]</span></span>
+<span class="line"><span style="color:#B392F0">    PathValidation</span><span style="color:#E1E4E8">(#[from] </span><span style="color:#B392F0">PathRejection</span><span style="color:#E1E4E8">),</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#E1E4E8">    #[error(</span><span style="color:#9ECBFF">"unexpected"</span><span style="color:#E1E4E8">)]</span></span>
+<span class="line"><span style="color:#B392F0">    Unexpected</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">String</span><span style="color:#E1E4E8">),</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">impl</span><span style="color:#B392F0"> From</span><span style="color:#E1E4E8">&#x3C;</span><span style="color:#B392F0">JsonSchemaRejection</span><span style="color:#E1E4E8">> </span><span style="color:#F97583">for</span><span style="color:#B392F0"> Error</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#F97583">    fn</span><span style="color:#B392F0"> from</span><span style="color:#E1E4E8">(rejection</span><span style="color:#F97583">:</span><span style="color:#B392F0"> JsonSchemaRejection</span><span style="color:#E1E4E8">) </span><span style="color:#F97583">-></span><span style="color:#79B8FF"> Self</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#79B8FF">        Self</span><span style="color:#F97583">::</span><span style="color:#B392F0">JsonValidation</span><span style="color:#E1E4E8">(rejection)</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#E1E4E8">#[derive(</span><span style="color:#B392F0">Serialize</span><span style="color:#E1E4E8">, </span><span style="color:#B392F0">JsonSchema</span><span style="color:#E1E4E8">)]</span></span>
+<span class="line"><span style="color:#E1E4E8">#[serde(tag </span><span style="color:#F97583">=</span><span style="color:#9ECBFF"> "error"</span><span style="color:#E1E4E8">, rename_all </span><span style="color:#F97583">=</span><span style="color:#9ECBFF"> "snake_case"</span><span style="color:#E1E4E8">)]</span></span>
+<span class="line"><span style="color:#F97583">pub</span><span style="color:#F97583"> enum</span><span style="color:#B392F0"> ErrorResponse</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#B392F0">    PathValidation</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#E1E4E8">        message</span><span style="color:#F97583">:</span><span style="color:#B392F0"> String</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#E1E4E8">    },</span></span>
+<span class="line"><span style="color:#B392F0">    QueryValidation</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#E1E4E8">        message</span><span style="color:#F97583">:</span><span style="color:#B392F0"> String</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#E1E4E8">    },</span></span>
+<span class="line"><span style="color:#B392F0">    JsonValidation</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#E1E4E8">        message</span><span style="color:#F97583">:</span><span style="color:#B392F0"> String</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#E1E4E8">        details</span><span style="color:#F97583">:</span><span style="color:#B392F0"> Option</span><span style="color:#E1E4E8">&#x3C;</span><span style="color:#B392F0">Value</span><span style="color:#E1E4E8">>,</span></span>
+<span class="line"><span style="color:#E1E4E8">    },</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#B392F0">    Unexpected</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#E1E4E8">        message</span><span style="color:#F97583">:</span><span style="color:#B392F0"> String</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#E1E4E8">    },</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">impl</span><span style="color:#B392F0"> From</span><span style="color:#E1E4E8">&#x3C;</span><span style="color:#B392F0">Error</span><span style="color:#E1E4E8">> </span><span style="color:#F97583">for</span><span style="color:#B392F0"> ErrorResponse</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#F97583">    fn</span><span style="color:#B392F0"> from</span><span style="color:#E1E4E8">(error</span><span style="color:#F97583">:</span><span style="color:#B392F0"> Error</span><span style="color:#E1E4E8">) </span><span style="color:#F97583">-></span><span style="color:#79B8FF"> Self</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#F97583">        match</span><span style="color:#E1E4E8"> error {</span></span>
+<span class="line"><span style="color:#B392F0">            Error</span><span style="color:#F97583">::</span><span style="color:#B392F0">PathValidation</span><span style="color:#E1E4E8">(error) </span><span style="color:#F97583">=></span><span style="color:#79B8FF"> Self</span><span style="color:#F97583">::</span><span style="color:#B392F0">PathValidation</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#E1E4E8">                message</span><span style="color:#F97583">:</span><span style="color:#E1E4E8"> error</span><span style="color:#F97583">.</span><span style="color:#B392F0">body_text</span><span style="color:#E1E4E8">(),</span></span>
+<span class="line"><span style="color:#E1E4E8">            },</span></span>
+<span class="line"><span style="color:#B392F0">            Error</span><span style="color:#F97583">::</span><span style="color:#B392F0">QueryValidation</span><span style="color:#E1E4E8">(error) </span><span style="color:#F97583">=></span><span style="color:#79B8FF"> Self</span><span style="color:#F97583">::</span><span style="color:#B392F0">QueryValidation</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#E1E4E8">                message</span><span style="color:#F97583">:</span><span style="color:#E1E4E8"> error</span><span style="color:#F97583">.</span><span style="color:#B392F0">body_text</span><span style="color:#E1E4E8">(),</span></span>
+<span class="line"><span style="color:#E1E4E8">            },</span></span>
+<span class="line"><span style="color:#B392F0">            Error</span><span style="color:#F97583">::</span><span style="color:#B392F0">JsonValidation</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">JsonSchemaRejection</span><span style="color:#F97583">::</span><span style="color:#B392F0">Schema</span><span style="color:#E1E4E8">(errors)) </span><span style="color:#F97583">=></span><span style="color:#79B8FF"> Self</span><span style="color:#F97583">::</span><span style="color:#B392F0">JsonValidation</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#E1E4E8">                message</span><span style="color:#F97583">:</span><span style="color:#9ECBFF"> "Request schema validation error"</span><span style="color:#F97583">.</span><span style="color:#B392F0">into</span><span style="color:#E1E4E8">(),</span></span>
+<span class="line"><span style="color:#E1E4E8">                details</span><span style="color:#F97583">:</span><span style="color:#B392F0"> Some</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">json!</span><span style="color:#E1E4E8">(errors)),</span></span>
+<span class="line"><span style="color:#E1E4E8">            },</span></span>
+<span class="line"><span style="color:#B392F0">            Error</span><span style="color:#F97583">::</span><span style="color:#B392F0">JsonValidation</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">JsonSchemaRejection</span><span style="color:#F97583">::</span><span style="color:#B392F0">Json</span><span style="color:#E1E4E8">(error)) </span><span style="color:#F97583">=></span><span style="color:#79B8FF"> Self</span><span style="color:#F97583">::</span><span style="color:#B392F0">JsonValidation</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#E1E4E8">                message</span><span style="color:#F97583">:</span><span style="color:#E1E4E8"> error</span><span style="color:#F97583">.</span><span style="color:#B392F0">body_text</span><span style="color:#E1E4E8">(),</span></span>
+<span class="line"><span style="color:#E1E4E8">                details</span><span style="color:#F97583">:</span><span style="color:#B392F0"> None</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#E1E4E8">            },</span></span>
+<span class="line"><span style="color:#B392F0">            Error</span><span style="color:#F97583">::</span><span style="color:#B392F0">JsonValidation</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">JsonSchemaRejection</span><span style="color:#F97583">::</span><span style="color:#B392F0">Serde</span><span style="color:#E1E4E8">(error)) </span><span style="color:#F97583">=></span><span style="color:#79B8FF"> Self</span><span style="color:#F97583">::</span><span style="color:#B392F0">JsonValidation</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#E1E4E8">                message</span><span style="color:#F97583">:</span><span style="color:#E1E4E8"> error</span><span style="color:#F97583">.</span><span style="color:#B392F0">to_string</span><span style="color:#E1E4E8">(),</span></span>
+<span class="line"><span style="color:#E1E4E8">                details</span><span style="color:#F97583">:</span><span style="color:#B392F0"> None</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#E1E4E8">            },</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#B392F0">            Error</span><span style="color:#F97583">::</span><span style="color:#B392F0">Unexpected</span><span style="color:#E1E4E8">(message) </span><span style="color:#F97583">=></span><span style="color:#79B8FF"> Self</span><span style="color:#F97583">::</span><span style="color:#B392F0">Unexpected</span><span style="color:#E1E4E8"> { message },</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">impl</span><span style="color:#B392F0"> IntoResponse</span><span style="color:#F97583"> for</span><span style="color:#B392F0"> Error</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#F97583">    fn</span><span style="color:#B392F0"> into_response</span><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">self</span><span style="color:#E1E4E8">) </span><span style="color:#F97583">-></span><span style="color:#B392F0"> axum</span><span style="color:#F97583">::</span><span style="color:#B392F0">response</span><span style="color:#F97583">::</span><span style="color:#B392F0">Response</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#F97583">        let</span><span style="color:#E1E4E8"> status </span><span style="color:#F97583">=</span><span style="color:#F97583"> match</span><span style="color:#79B8FF"> self</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#B392F0">            Error</span><span style="color:#F97583">::</span><span style="color:#B392F0">PathValidation</span><span style="color:#E1E4E8">(_) </span><span style="color:#F97583">|</span><span style="color:#B392F0"> Error</span><span style="color:#F97583">::</span><span style="color:#B392F0">QueryValidation</span><span style="color:#E1E4E8">(_) </span><span style="color:#F97583">|</span><span style="color:#B392F0"> Error</span><span style="color:#F97583">::</span><span style="color:#B392F0">JsonValidation</span><span style="color:#E1E4E8">(_) </span><span style="color:#F97583">=></span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#B392F0">                StatusCode</span><span style="color:#F97583">::</span><span style="color:#79B8FF">BAD_REQUEST</span></span>
+<span class="line"><span style="color:#E1E4E8">            }</span></span>
+<span class="line"><span style="color:#B392F0">            Error</span><span style="color:#F97583">::</span><span style="color:#B392F0">Unexpected</span><span style="color:#E1E4E8">(_) </span><span style="color:#F97583">=></span><span style="color:#B392F0"> StatusCode</span><span style="color:#F97583">::</span><span style="color:#79B8FF">INTERNAL_SERVER_ERROR</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#E1E4E8">        };</span></span>
+<span class="line"><span style="color:#F97583">        let</span><span style="color:#F97583"> mut</span><span style="color:#E1E4E8"> res </span><span style="color:#F97583">=</span><span style="color:#B392F0"> axum</span><span style="color:#F97583">::</span><span style="color:#B392F0">Json</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">ErrorResponse</span><span style="color:#F97583">::</span><span style="color:#B392F0">from</span><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">self</span><span style="color:#E1E4E8">))</span><span style="color:#F97583">.</span><span style="color:#B392F0">into_response</span><span style="color:#E1E4E8">();</span></span>
+<span class="line"><span style="color:#F97583">        *</span><span style="color:#E1E4E8">res</span><span style="color:#F97583">.</span><span style="color:#B392F0">status_mut</span><span style="color:#E1E4E8">() </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> status;</span></span>
+<span class="line"><span style="color:#E1E4E8">        res</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// Aide newtypes</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#E1E4E8">#[derive(</span><span style="color:#B392F0">FromRequestParts</span><span style="color:#E1E4E8">, </span><span style="color:#B392F0">OperationIo</span><span style="color:#E1E4E8">)]</span></span>
+<span class="line"><span style="color:#E1E4E8">#[from_request(via(axum</span><span style="color:#F97583">::</span><span style="color:#E1E4E8">extract</span><span style="color:#F97583">::</span><span style="color:#B392F0">Path</span><span style="color:#E1E4E8">), rejection(</span><span style="color:#B392F0">Error</span><span style="color:#E1E4E8">))]</span></span>
+<span class="line"><span style="color:#E1E4E8">#[aide(</span></span>
+<span class="line"><span style="color:#E1E4E8">    input_with </span><span style="color:#F97583">=</span><span style="color:#9ECBFF"> "axum::extract::Path&#x3C;T>"</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#E1E4E8">    output_with </span><span style="color:#F97583">=</span><span style="color:#9ECBFF"> "axum_jsonschema::Json&#x3C;T>"</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#E1E4E8">    json_schema</span></span>
+<span class="line"><span style="color:#E1E4E8">)]</span></span>
+<span class="line"><span style="color:#F97583">pub</span><span style="color:#F97583"> struct</span><span style="color:#B392F0"> Path</span><span style="color:#E1E4E8">&#x3C;</span><span style="color:#B392F0">T</span><span style="color:#E1E4E8">>(</span><span style="color:#F97583">pub</span><span style="color:#B392F0"> T</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#E1E4E8">#[derive(</span><span style="color:#B392F0">FromRequestParts</span><span style="color:#E1E4E8">, </span><span style="color:#B392F0">OperationIo</span><span style="color:#E1E4E8">)]</span></span>
+<span class="line"><span style="color:#E1E4E8">#[from_request(via(axum</span><span style="color:#F97583">::</span><span style="color:#E1E4E8">extract</span><span style="color:#F97583">::</span><span style="color:#B392F0">Query</span><span style="color:#E1E4E8">), rejection(</span><span style="color:#B392F0">Error</span><span style="color:#E1E4E8">))]</span></span>
+<span class="line"><span style="color:#E1E4E8">#[aide(</span></span>
+<span class="line"><span style="color:#E1E4E8">    input_with </span><span style="color:#F97583">=</span><span style="color:#9ECBFF"> "axum::extract::Query&#x3C;T>"</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#E1E4E8">    output_with </span><span style="color:#F97583">=</span><span style="color:#9ECBFF"> "axum_jsonschema::Json&#x3C;T>"</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#E1E4E8">    json_schema</span></span>
+<span class="line"><span style="color:#E1E4E8">)]</span></span>
+<span class="line"><span style="color:#E1E4E8">#[aide]</span></span>
+<span class="line"><span style="color:#F97583">pub</span><span style="color:#F97583"> struct</span><span style="color:#B392F0"> Query</span><span style="color:#E1E4E8">&#x3C;</span><span style="color:#B392F0">T</span><span style="color:#E1E4E8">>(</span><span style="color:#F97583">pub</span><span style="color:#B392F0"> T</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#E1E4E8">#[derive(</span><span style="color:#B392F0">FromRequest</span><span style="color:#E1E4E8">, </span><span style="color:#B392F0">OperationIo</span><span style="color:#E1E4E8">)]</span></span>
+<span class="line"><span style="color:#E1E4E8">#[from_request(via(axum_jsonschema</span><span style="color:#F97583">::</span><span style="color:#B392F0">Json</span><span style="color:#E1E4E8">), rejection(</span><span style="color:#B392F0">Error</span><span style="color:#E1E4E8">))]</span></span>
+<span class="line"><span style="color:#E1E4E8">#[aide(</span></span>
+<span class="line"><span style="color:#E1E4E8">    input_with </span><span style="color:#F97583">=</span><span style="color:#9ECBFF"> "axum_jsonschema::Json&#x3C;T>"</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#E1E4E8">    output_with </span><span style="color:#F97583">=</span><span style="color:#9ECBFF"> "axum_jsonschema::Json&#x3C;T>"</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#E1E4E8">    json_schema</span></span>
+<span class="line"><span style="color:#E1E4E8">)]</span></span>
+<span class="line"><span style="color:#F97583">pub</span><span style="color:#F97583"> struct</span><span style="color:#B392F0"> Json</span><span style="color:#E1E4E8">&#x3C;</span><span style="color:#B392F0">T</span><span style="color:#E1E4E8">>(</span><span style="color:#F97583">pub</span><span style="color:#B392F0"> T</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">impl</span><span style="color:#E1E4E8">&#x3C;</span><span style="color:#B392F0">T</span><span style="color:#E1E4E8">> </span><span style="color:#B392F0">IntoResponse</span><span style="color:#F97583"> for</span><span style="color:#B392F0"> Json</span><span style="color:#E1E4E8">&#x3C;</span><span style="color:#B392F0">T</span><span style="color:#E1E4E8">></span></span>
+<span class="line"><span style="color:#F97583">where</span></span>
+<span class="line"><span style="color:#B392F0">    T</span><span style="color:#F97583">:</span><span style="color:#B392F0"> Serialize</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#E1E4E8">{</span></span>
+<span class="line"><span style="color:#F97583">    fn</span><span style="color:#B392F0"> into_response</span><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">self</span><span style="color:#E1E4E8">) </span><span style="color:#F97583">-></span><span style="color:#B392F0"> axum</span><span style="color:#F97583">::</span><span style="color:#B392F0">response</span><span style="color:#F97583">::</span><span style="color:#B392F0">Response</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#B392F0">        axum</span><span style="color:#F97583">::</span><span style="color:#B392F0">Json</span><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">self</span><span style="color:#F97583">.</span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">)</span><span style="color:#F97583">.</span><span style="color:#B392F0">into_response</span><span style="color:#E1E4E8">()</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// Notes API</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#E1E4E8">#[derive(</span><span style="color:#B392F0">Deserialize</span><span style="color:#E1E4E8">, </span><span style="color:#B392F0">JsonSchema</span><span style="color:#E1E4E8">)]</span></span>
+<span class="line"><span style="color:#F97583">struct</span><span style="color:#B392F0"> CreateNote</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#E1E4E8">    title</span><span style="color:#F97583">:</span><span style="color:#B392F0"> Option</span><span style="color:#E1E4E8">&#x3C;</span><span style="color:#B392F0">String</span><span style="color:#E1E4E8">>,</span></span>
+<span class="line"><span style="color:#E1E4E8">    text</span><span style="color:#F97583">:</span><span style="color:#B392F0"> String</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#E1E4E8">#[derive(</span><span style="color:#B392F0">Deserialize</span><span style="color:#E1E4E8">, </span><span style="color:#B392F0">JsonSchema</span><span style="color:#E1E4E8">)]</span></span>
+<span class="line"><span style="color:#F97583">struct</span><span style="color:#B392F0"> FindNotes</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#6A737D">    /// Search by text or by title</span></span>
+<span class="line"><span style="color:#E1E4E8">    query</span><span style="color:#F97583">:</span><span style="color:#B392F0"> Option</span><span style="color:#E1E4E8">&#x3C;</span><span style="color:#B392F0">String</span><span style="color:#E1E4E8">>,</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#E1E4E8">#[derive(</span><span style="color:#B392F0">Deserialize</span><span style="color:#E1E4E8">, </span><span style="color:#B392F0">JsonSchema</span><span style="color:#E1E4E8">)]</span></span>
+<span class="line"><span style="color:#F97583">struct</span><span style="color:#B392F0"> NoteId</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#6A737D">    /// Uuid v7</span></span>
+<span class="line"><span style="color:#E1E4E8">    note_id</span><span style="color:#F97583">:</span><span style="color:#B392F0"> Uuid</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#E1E4E8">#[derive(</span><span style="color:#B392F0">Serialize</span><span style="color:#E1E4E8">, </span><span style="color:#B392F0">JsonSchema</span><span style="color:#E1E4E8">)]</span></span>
+<span class="line"><span style="color:#F97583">struct</span><span style="color:#B392F0"> Note</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#E1E4E8">    id</span><span style="color:#F97583">:</span><span style="color:#B392F0"> Uuid</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#E1E4E8">    title</span><span style="color:#F97583">:</span><span style="color:#B392F0"> String</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#E1E4E8">    text</span><span style="color:#F97583">:</span><span style="color:#B392F0"> String</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">async</span><span style="color:#F97583"> fn</span><span style="color:#B392F0"> find_note</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">Path</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">NoteId</span><span style="color:#E1E4E8"> { note_id })</span><span style="color:#F97583">:</span><span style="color:#B392F0"> Path</span><span style="color:#E1E4E8">&#x3C;</span><span style="color:#B392F0">NoteId</span><span style="color:#E1E4E8">>) </span><span style="color:#F97583">-></span><span style="color:#F97583"> impl</span><span style="color:#B392F0"> IntoApiResponse</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#F97583">    let</span><span style="color:#E1E4E8"> note </span><span style="color:#F97583">=</span><span style="color:#B392F0"> Note</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#E1E4E8">        id</span><span style="color:#F97583">:</span><span style="color:#E1E4E8"> note_id,</span></span>
+<span class="line"><span style="color:#E1E4E8">        title</span><span style="color:#F97583">:</span><span style="color:#9ECBFF"> "New note"</span><span style="color:#F97583">.</span><span style="color:#B392F0">into</span><span style="color:#E1E4E8">(),</span></span>
+<span class="line"><span style="color:#E1E4E8">        text</span><span style="color:#F97583">:</span><span style="color:#9ECBFF"> "Some texxt"</span><span style="color:#F97583">.</span><span style="color:#B392F0">into</span><span style="color:#E1E4E8">(),</span></span>
+<span class="line"><span style="color:#E1E4E8">    };</span></span>
+<span class="line"><span style="color:#B392F0">    Json</span><span style="color:#E1E4E8">(note)</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">async</span><span style="color:#F97583"> fn</span><span style="color:#B392F0"> find_notes</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">Query</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">FindNotes</span><span style="color:#E1E4E8"> { query })</span><span style="color:#F97583">:</span><span style="color:#B392F0"> Query</span><span style="color:#E1E4E8">&#x3C;</span><span style="color:#B392F0">FindNotes</span><span style="color:#E1E4E8">>) </span><span style="color:#F97583">-></span><span style="color:#F97583"> impl</span><span style="color:#B392F0"> IntoApiResponse</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#F97583">    let</span><span style="color:#E1E4E8"> notes</span><span style="color:#F97583">:</span><span style="color:#B392F0"> Vec</span><span style="color:#E1E4E8">&#x3C;</span><span style="color:#B392F0">Note</span><span style="color:#E1E4E8">> </span><span style="color:#F97583">=</span><span style="color:#B392F0"> vec!</span><span style="color:#E1E4E8">[];</span></span>
+<span class="line"><span style="color:#B392F0">    Json</span><span style="color:#E1E4E8">(notes)</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">async</span><span style="color:#F97583"> fn</span><span style="color:#B392F0"> create_note</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">Json</span><span style="color:#E1E4E8">(args)</span><span style="color:#F97583">:</span><span style="color:#B392F0"> Json</span><span style="color:#E1E4E8">&#x3C;</span><span style="color:#B392F0">CreateNote</span><span style="color:#E1E4E8">>) </span><span style="color:#F97583">-></span><span style="color:#F97583"> impl</span><span style="color:#B392F0"> IntoApiResponse</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#F97583">    let</span><span style="color:#E1E4E8"> note </span><span style="color:#F97583">=</span><span style="color:#B392F0"> Note</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#E1E4E8">        id</span><span style="color:#F97583">:</span><span style="color:#B392F0"> Uuid</span><span style="color:#F97583">::</span><span style="color:#B392F0">now_v7</span><span style="color:#E1E4E8">(),</span></span>
+<span class="line"><span style="color:#E1E4E8">        title</span><span style="color:#F97583">:</span><span style="color:#E1E4E8"> args</span><span style="color:#F97583">.</span><span style="color:#E1E4E8">title</span><span style="color:#F97583">.</span><span style="color:#B392F0">unwrap_or</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"New note"</span><span style="color:#F97583">.</span><span style="color:#B392F0">into</span><span style="color:#E1E4E8">()),</span></span>
+<span class="line"><span style="color:#E1E4E8">        text</span><span style="color:#F97583">:</span><span style="color:#E1E4E8"> args</span><span style="color:#F97583">.</span><span style="color:#E1E4E8">text,</span></span>
+<span class="line"><span style="color:#E1E4E8">    };</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#E1E4E8">    (</span><span style="color:#B392F0">StatusCode</span><span style="color:#F97583">::</span><span style="color:#79B8FF">CREATED</span><span style="color:#E1E4E8">, </span><span style="color:#B392F0">Json</span><span style="color:#E1E4E8">(note))</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#E1E4E8">#[tokio</span><span style="color:#F97583">::</span><span style="color:#E1E4E8">main]</span></span>
+<span class="line"><span style="color:#F97583">async</span><span style="color:#F97583"> fn</span><span style="color:#B392F0"> main</span><span style="color:#E1E4E8">() {</span></span>
+<span class="line"><span style="color:#F97583">    let</span><span style="color:#F97583"> mut</span><span style="color:#E1E4E8"> api </span><span style="color:#F97583">=</span><span style="color:#B392F0"> OpenApi</span><span style="color:#F97583">::</span><span style="color:#B392F0">default</span><span style="color:#E1E4E8">();</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">    let</span><span style="color:#E1E4E8"> app </span><span style="color:#F97583">=</span><span style="color:#B392F0"> ApiRouter</span><span style="color:#F97583">::</span><span style="color:#B392F0">new</span><span style="color:#E1E4E8">()</span></span>
+<span class="line"><span style="color:#F97583">        .</span><span style="color:#B392F0">api_route</span><span style="color:#E1E4E8">(</span></span>
+<span class="line"><span style="color:#9ECBFF">            "/notes/:note_id"</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#B392F0">            get_with</span><span style="color:#E1E4E8">(find_note, </span><span style="color:#F97583">|</span><span style="color:#E1E4E8">t</span><span style="color:#F97583">|</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#E1E4E8">                t</span><span style="color:#F97583">.</span><span style="color:#B392F0">summary</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"Get a note by its ID"</span><span style="color:#E1E4E8">)</span></span>
+<span class="line"><span style="color:#F97583">                    .</span><span style="color:#B392F0">description</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"Retrieve a single note using its unique identifier."</span><span style="color:#E1E4E8">)</span></span>
+<span class="line"><span style="color:#E1E4E8">            }),</span></span>
+<span class="line"><span style="color:#E1E4E8">        )</span></span>
+<span class="line"><span style="color:#F97583">        .</span><span style="color:#B392F0">api_route</span><span style="color:#E1E4E8">(</span></span>
+<span class="line"><span style="color:#9ECBFF">            "/notes"</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#B392F0">            get</span><span style="color:#E1E4E8">(find_notes)</span><span style="color:#F97583">.</span><span style="color:#B392F0">post_with</span><span style="color:#E1E4E8">(create_note, </span><span style="color:#F97583">|</span><span style="color:#E1E4E8">t</span><span style="color:#F97583">|</span><span style="color:#E1E4E8"> t</span><span style="color:#F97583">.</span><span style="color:#B392F0">response</span><span style="color:#F97583">::</span><span style="color:#E1E4E8">&#x3C;</span><span style="color:#79B8FF">201</span><span style="color:#E1E4E8">, </span><span style="color:#B392F0">Json</span><span style="color:#E1E4E8">&#x3C;</span><span style="color:#B392F0">Note</span><span style="color:#E1E4E8">>>()),</span></span>
+<span class="line"><span style="color:#E1E4E8">        )</span></span>
+<span class="line"><span style="color:#F97583">        .</span><span style="color:#B392F0">finish_api_with</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">&#x26;mut</span><span style="color:#E1E4E8"> api, </span><span style="color:#F97583">|</span><span style="color:#E1E4E8">t</span><span style="color:#F97583">|</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#E1E4E8">            t</span><span style="color:#F97583">.</span><span style="color:#B392F0">title</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"My Notes"</span><span style="color:#E1E4E8">)</span></span>
+<span class="line"><span style="color:#F97583">                .</span><span style="color:#B392F0">version</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"0.0.1"</span><span style="color:#E1E4E8">)</span></span>
+<span class="line"><span style="color:#F97583">                .</span><span style="color:#B392F0">default_response</span><span style="color:#F97583">::</span><span style="color:#E1E4E8">&#x3C;</span><span style="color:#B392F0">Json</span><span style="color:#E1E4E8">&#x3C;</span><span style="color:#B392F0">ErrorResponse</span><span style="color:#E1E4E8">>>()</span></span>
+<span class="line"><span style="color:#E1E4E8">        });</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">    let</span><span style="color:#E1E4E8"> json </span><span style="color:#F97583">=</span><span style="color:#B392F0"> serde_json</span><span style="color:#F97583">::</span><span style="color:#B392F0">to_string_pretty</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">api)</span><span style="color:#F97583">.</span><span style="color:#B392F0">unwrap</span><span style="color:#E1E4E8">();</span></span>
+<span class="line"><span style="color:#B392F0">    println!</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"{}"</span><span style="color:#E1E4E8">, json);</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">    let</span><span style="color:#E1E4E8"> listener </span><span style="color:#F97583">=</span><span style="color:#B392F0"> TcpListener</span><span style="color:#F97583">::</span><span style="color:#B392F0">bind</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">format!</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"127.0.0.1:3031"</span><span style="color:#E1E4E8">))</span><span style="color:#F97583">.await.</span><span style="color:#B392F0">unwrap</span><span style="color:#E1E4E8">();</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#B392F0">    axum</span><span style="color:#F97583">::</span><span style="color:#B392F0">serve</span><span style="color:#E1E4E8">(listener, app)</span><span style="color:#F97583">.await.</span><span style="color:#B392F0">unwrap</span><span style="color:#E1E4E8">();</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span></code></pre>
+</details>
+<details>
+  <summary>openapi.yaml</summary>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="yaml"><code><span class="line"><span style="color:#85E89D">openapi</span><span style="color:#E1E4E8">: </span><span style="color:#79B8FF">3.1.0</span></span>
+<span class="line"><span style="color:#85E89D">info</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">  title</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">My Notes</span></span>
+<span class="line"><span style="color:#85E89D">  version</span><span style="color:#E1E4E8">: </span><span style="color:#79B8FF">0.0.1</span></span>
+<span class="line"><span style="color:#85E89D">paths</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">  /notes/{note_id}</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">    get</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">      summary</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">Get a note by its ID</span></span>
+<span class="line"><span style="color:#85E89D">      description</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">Retrieve a single note using its unique identifier.</span></span>
+<span class="line"><span style="color:#85E89D">      parameters</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#E1E4E8">        - </span><span style="color:#85E89D">in</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">path</span></span>
+<span class="line"><span style="color:#85E89D">          name</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">note_id</span></span>
+<span class="line"><span style="color:#85E89D">          description</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">Uuid v7</span></span>
+<span class="line"><span style="color:#85E89D">          required</span><span style="color:#E1E4E8">: </span><span style="color:#79B8FF">true</span></span>
+<span class="line"><span style="color:#85E89D">          schema</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">            description</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">Uuid v7</span></span>
+<span class="line"><span style="color:#85E89D">            type</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">string</span></span>
+<span class="line"><span style="color:#85E89D">            format</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">uuid</span></span>
+<span class="line"><span style="color:#85E89D">          style</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">simple</span></span>
+<span class="line"><span style="color:#85E89D">      responses</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">        default</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">          description</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">''</span></span>
+<span class="line"><span style="color:#85E89D">          content</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">            application/json</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">              schema</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">                $ref</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">'#/components/schemas/ErrorResponse'</span></span>
+<span class="line"><span style="color:#9ECBFF">        '200'</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">          description</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">''</span></span>
+<span class="line"><span style="color:#85E89D">          content</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">            application/json</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">              schema</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">                $ref</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">'#/components/schemas/Note'</span></span>
+<span class="line"><span style="color:#85E89D">  /notes</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">    get</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">      parameters</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#E1E4E8">        - </span><span style="color:#85E89D">in</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">query</span></span>
+<span class="line"><span style="color:#85E89D">          name</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">query</span></span>
+<span class="line"><span style="color:#85E89D">          description</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">Search by text or by title</span></span>
+<span class="line"><span style="color:#85E89D">          schema</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">            description</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">Search by text or by title</span></span>
+<span class="line"><span style="color:#85E89D">            type</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#E1E4E8">              - </span><span style="color:#9ECBFF">string</span></span>
+<span class="line"><span style="color:#E1E4E8">              - </span><span style="color:#9ECBFF">'null'</span></span>
+<span class="line"><span style="color:#85E89D">          style</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">form</span></span>
+<span class="line"><span style="color:#85E89D">      responses</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">        default</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">          description</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">''</span></span>
+<span class="line"><span style="color:#85E89D">          content</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">            application/json</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">              schema</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">                $ref</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">'#/components/schemas/ErrorResponse'</span></span>
+<span class="line"><span style="color:#9ECBFF">        '200'</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">          description</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">''</span></span>
+<span class="line"><span style="color:#85E89D">          content</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">            application/json</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">              schema</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">                type</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">array</span></span>
+<span class="line"><span style="color:#85E89D">                items</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">                  $ref</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">'#/components/schemas/Note'</span></span>
+<span class="line"><span style="color:#85E89D">    post</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">      requestBody</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">        content</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">          application/json</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">            schema</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">              $ref</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">'#/components/schemas/CreateNote'</span></span>
+<span class="line"><span style="color:#85E89D">        required</span><span style="color:#E1E4E8">: </span><span style="color:#79B8FF">true</span></span>
+<span class="line"><span style="color:#85E89D">      responses</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">        default</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">          description</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">''</span></span>
+<span class="line"><span style="color:#85E89D">          content</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">            application/json</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">              schema</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">                $ref</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">'#/components/schemas/ErrorResponse'</span></span>
+<span class="line"><span style="color:#9ECBFF">        '201'</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">          description</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">''</span></span>
+<span class="line"><span style="color:#85E89D">          content</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">            application/json</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">              schema</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">                $ref</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">'#/components/schemas/Note'</span></span>
+<span class="line"><span style="color:#85E89D">components</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">  schemas</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">    CreateNote</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">      type</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">object</span></span>
+<span class="line"><span style="color:#85E89D">      required</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#E1E4E8">        - </span><span style="color:#9ECBFF">text</span></span>
+<span class="line"><span style="color:#85E89D">      properties</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">        text</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">          type</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">string</span></span>
+<span class="line"><span style="color:#85E89D">        title</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">          type</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#E1E4E8">            - </span><span style="color:#9ECBFF">string</span></span>
+<span class="line"><span style="color:#E1E4E8">            - </span><span style="color:#9ECBFF">'null'</span></span>
+<span class="line"><span style="color:#85E89D">    ErrorResponse</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">      oneOf</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#E1E4E8">        - </span><span style="color:#85E89D">type</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">object</span></span>
+<span class="line"><span style="color:#85E89D">          required</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#E1E4E8">            - </span><span style="color:#9ECBFF">error</span></span>
+<span class="line"><span style="color:#E1E4E8">            - </span><span style="color:#9ECBFF">message</span></span>
+<span class="line"><span style="color:#85E89D">          properties</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">            error</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">              type</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">string</span></span>
+<span class="line"><span style="color:#85E89D">              enum</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#E1E4E8">                - </span><span style="color:#9ECBFF">path_validation</span></span>
+<span class="line"><span style="color:#85E89D">            message</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">              type</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">string</span></span>
+<span class="line"><span style="color:#E1E4E8">        - </span><span style="color:#85E89D">type</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">object</span></span>
+<span class="line"><span style="color:#85E89D">          required</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#E1E4E8">            - </span><span style="color:#9ECBFF">error</span></span>
+<span class="line"><span style="color:#E1E4E8">            - </span><span style="color:#9ECBFF">message</span></span>
+<span class="line"><span style="color:#85E89D">          properties</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">            error</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">              type</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">string</span></span>
+<span class="line"><span style="color:#85E89D">              enum</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#E1E4E8">                - </span><span style="color:#9ECBFF">query_validation</span></span>
+<span class="line"><span style="color:#85E89D">            message</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">              type</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">string</span></span>
+<span class="line"><span style="color:#E1E4E8">        - </span><span style="color:#85E89D">type</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">object</span></span>
+<span class="line"><span style="color:#85E89D">          required</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#E1E4E8">            - </span><span style="color:#9ECBFF">error</span></span>
+<span class="line"><span style="color:#E1E4E8">            - </span><span style="color:#9ECBFF">message</span></span>
+<span class="line"><span style="color:#85E89D">          properties</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">            details</span><span style="color:#E1E4E8">: </span><span style="color:#79B8FF">true</span></span>
+<span class="line"><span style="color:#85E89D">            error</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">              type</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">string</span></span>
+<span class="line"><span style="color:#85E89D">              enum</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#E1E4E8">                - </span><span style="color:#9ECBFF">json_validation</span></span>
+<span class="line"><span style="color:#85E89D">            message</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">              type</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">string</span></span>
+<span class="line"><span style="color:#E1E4E8">        - </span><span style="color:#85E89D">type</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">object</span></span>
+<span class="line"><span style="color:#85E89D">          required</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#E1E4E8">            - </span><span style="color:#9ECBFF">error</span></span>
+<span class="line"><span style="color:#E1E4E8">            - </span><span style="color:#9ECBFF">message</span></span>
+<span class="line"><span style="color:#85E89D">          properties</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">            error</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">              type</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">string</span></span>
+<span class="line"><span style="color:#85E89D">              enum</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#E1E4E8">                - </span><span style="color:#9ECBFF">unexpected</span></span>
+<span class="line"><span style="color:#85E89D">            message</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">              type</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">string</span></span>
+<span class="line"><span style="color:#85E89D">    FindNotes</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">      type</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">object</span></span>
+<span class="line"><span style="color:#85E89D">      properties</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">        query</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">          description</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">Search by text or by title</span></span>
+<span class="line"><span style="color:#85E89D">          type</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#E1E4E8">            - </span><span style="color:#9ECBFF">string</span></span>
+<span class="line"><span style="color:#E1E4E8">            - </span><span style="color:#9ECBFF">'null'</span></span>
+<span class="line"><span style="color:#85E89D">    Note</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">      type</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">object</span></span>
+<span class="line"><span style="color:#85E89D">      required</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#E1E4E8">        - </span><span style="color:#9ECBFF">id</span></span>
+<span class="line"><span style="color:#E1E4E8">        - </span><span style="color:#9ECBFF">text</span></span>
+<span class="line"><span style="color:#E1E4E8">        - </span><span style="color:#9ECBFF">title</span></span>
+<span class="line"><span style="color:#85E89D">      properties</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">        id</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">          type</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">string</span></span>
+<span class="line"><span style="color:#85E89D">          format</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">uuid</span></span>
+<span class="line"><span style="color:#85E89D">        text</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">          type</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">string</span></span>
+<span class="line"><span style="color:#85E89D">        title</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">          type</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">string</span></span>
+<span class="line"><span style="color:#85E89D">    NoteId</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">      type</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">object</span></span>
+<span class="line"><span style="color:#85E89D">      required</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#E1E4E8">        - </span><span style="color:#9ECBFF">note_id</span></span>
+<span class="line"><span style="color:#85E89D">      properties</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">        note_id</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">          description</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">Uuid v7</span></span>
+<span class="line"><span style="color:#85E89D">          type</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">string</span></span>
+<span class="line"><span style="color:#85E89D">          format</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">uuid</span></span>
+<span class="line"></span></code></pre>
+</details>
+<h2 id="итоги">Итоги</h2>
+<p>Небольшое кол-во бойлерплейта (~100 строчек) гибко закрывает базовые потребности и позволяет писать такой код, почти не задумываясь о сваггере.</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="rust"><code><span class="line"><span style="color:#F97583">pub</span><span style="color:#F97583"> async</span><span style="color:#F97583"> fn</span><span style="color:#B392F0"> create_note</span><span style="color:#E1E4E8">(</span></span>
+<span class="line"><span style="color:#B392F0">    NoApi</span><span style="color:#E1E4E8">(base_args)</span><span style="color:#F97583">:</span><span style="color:#B392F0"> NoApi</span><span style="color:#E1E4E8">&#x3C;</span><span style="color:#B392F0">BaseParams</span><span style="color:#E1E4E8">>,</span></span>
+<span class="line"><span style="color:#B392F0">    Json</span><span style="color:#E1E4E8">(args)</span><span style="color:#F97583">:</span><span style="color:#B392F0"> Json</span><span style="color:#E1E4E8">&#x3C;</span><span style="color:#B392F0">CreateNoteParams</span><span style="color:#E1E4E8">>,</span></span>
+<span class="line"><span style="color:#E1E4E8">) </span><span style="color:#F97583">-></span><span style="color:#F97583"> impl</span><span style="color:#B392F0"> IntoApiResponse</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#B392F0">    editor</span><span style="color:#F97583">::</span><span style="color:#B392F0">notes</span><span style="color:#F97583">::</span><span style="color:#B392F0">create_note</span><span style="color:#E1E4E8">(base_args, args)</span></span>
+<span class="line"><span style="color:#F97583">        .await</span></span>
+<span class="line"><span style="color:#F97583">        .</span><span style="color:#B392F0">map</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">Json</span><span style="color:#E1E4E8">)</span></span>
+<span class="line"><span style="color:#F97583">        .</span><span style="color:#B392F0">into_response</span><span style="color:#E1E4E8">()</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span></code></pre> </section> </main> <footer class="container"></footer> </body></html>
